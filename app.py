@@ -46,15 +46,18 @@ if len(st.session_state.messages) == 1:  # 초기 메시지만 있을 때만 선
     with col1:
         if st.button("✨ 별자리 운세"):
             st.session_state.messages.append({"role": "user", "content": "별자리 운세를 보고 싶어요."})
-            st.experimental_rerun()
+            st.session_state["user_input"] = "별자리 운세를 보고 싶어요."
+            st.experimental_set_query_params(dummy=str(time.time()))
     with col2:
         if st.button("🎋 사주팔자"):
             st.session_state.messages.append({"role": "user", "content": "사주팔자를 보고 싶어요."})
-            st.experimental_rerun()
+            st.session_state["user_input"] = "사주팔자를 보고 싶어요."
+            st.experimental_set_query_params(dummy=str(time.time()))
     with col3:
         if st.button("🎯 타로카드"):
             st.session_state.messages.append({"role": "user", "content": "타로카드로 운세를 보고 싶어요."})
-            st.experimental_rerun()
+            st.session_state["user_input"] = "타로카드로 운세를 보고 싶어요."
+            st.experimental_set_query_params(dummy=str(time.time()))
 
 # 사용자 입력
 user_input = st.text_input("궁금하신 점을 입력해주세요:", key="user_input")
@@ -110,6 +113,5 @@ with st.sidebar:
     st.header("⚠️ 주의사항")
     st.markdown("""
     - 이 서비스는 재미로만 참고해주세요
-    - 중요한 인생 결정은 전문가와 상담하시기 바랍니다
     - 개인정보는 안전하게 보호됩니다
     """) 
