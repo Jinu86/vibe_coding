@@ -10,26 +10,12 @@ st.set_page_config(
     layout="centered"
 )
 
-# OpenAI API 키 로드 (오류 처리 추가)
+# API 키 로드
 try:
-    load_dotenv()
-    # API 키를 환경 변수에서 가져오기
-    api_key = os.getenv("API_KEY", "")
-    
-    # 스트림릿 시크릿에서 API 키 가져오기 시도
-    if not api_key:
-        try:
-            api_key = st.secrets["API_KEY"]
-        except:
-            pass
-    
-    if not api_key:
-        # 안내 메시지만 표시하고 빈 API 키 사용 (운영 시에는 동작하지 않음)
-        st.warning("API 키가 설정되지 않았습니다. 이 앱을 사용하려면 API 키를 설정해주세요.")
-        api_key = ""
-except Exception as e:
-    st.warning(f"환경 변수 로드 중 오류가 발생했습니다: {e}")
-    api_key = ""
+    api_key = st.secrets["openai"]["OPENAI_API_KEY"]
+except KeyError:
+    st.error("OpenAI API 키가 설정되지 않았습니다. Streamlit Secrets에 API 키를 설정해주세요.")
+    st.stop()
 
 # OpenAI 클라이언트 초기화
 client = OpenAI(api_key=api_key)
