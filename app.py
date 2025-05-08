@@ -14,12 +14,12 @@ st.set_page_config(
 try:
     load_dotenv()
     # API 키를 환경 변수에서 가져오기
-    api_key = os.getenv("OPENAI_API_KEY", "")
+    api_key = os.getenv("API_KEY", "")
     
     # 스트림릿 시크릿에서 API 키 가져오기 시도
     if not api_key:
         try:
-            api_key = st.secrets["OPENAI_API_KEY"]
+            api_key = st.secrets["API_KEY"]
         except:
             pass
     
