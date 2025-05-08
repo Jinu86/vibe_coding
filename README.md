@@ -1,41 +1,41 @@
-# 운세 채팅 서비스
+# 운세 챗봇 애플리케이션
 
-AI를 활용한 운세 상담 채팅 서비스입니다. Streamlit을 사용하여 구현되었습니다.
+이 애플리케이션은 Streamlit과 OpenAI를 활용한 별자리 운세 챗봇입니다.
 
 ## 기능
 
-- AI 기반 운세 상담
-- 실시간 채팅 인터페이스
+- 별자리 운세 상담 서비스
+- 챗봇 형태의 대화식 인터페이스
+- OpenAI API를 활용한 지능형 응답
 - 사용자 친화적인 UI
 - 상세한 운세 분석 및 조언
 
 ## 설치 방법
 
-1. 저장소 클론
-```bash
-git clone [repository-url]
-cd [repository-name]
+1. 필요한 패키지 설치:
+```
+pip install streamlit openai python-dotenv
 ```
 
-2. 필요한 패키지 설치
-```bash
-pip install -r requirements.txt
+2. `.env` 파일을 생성하고 OpenAI API 키 설정:
 ```
-
-3. 환경 변수 설정
-`.env` 파일을 생성하고 OpenAI API 키를 추가합니다:
-```
-OPENAI_API_KEY=your-api-key-here
+OPENAI_API_KEY=your_openai_api_key_here
 ```
 
 ## 실행 방법
 
-```bash
+다음 명령어로 애플리케이션을 실행합니다:
+```
 streamlit run app.py
 ```
 
+## 사용 방법
+
+1. 애플리케이션이 시작되면 챗봇이 "안녕하세요 어떤 방식으로 운세를 봐드릴까요?"라고 물어봅니다.
+2. 채팅 입력창 위에 표시되는 "별자리 운세" 버튼을 클릭하여 대화를 시작합니다.
+3. 이후 대화창에 질문을 입력하면 챗봇이 별자리 운세를 봐드립니다.
+
 ## 주의사항
 
-- 이 서비스는 재미로만 참고해주세요
-- 중요한 인생 결정은 전문가와 상담하시기 바랍니다
-- OpenAI API 사용에 따른 비용이 발생할 수 있습니다 
+- OpenAI API 사용에 따른 비용이 발생할 수 있습니다.
+- 모든 운세는 참고용으로만 사용하시기 바랍니다. 

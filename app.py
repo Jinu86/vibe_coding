@@ -1,117 +1,167 @@
 import streamlit as st
-import openai
-from dotenv import load_dotenv
 import os
-import time
+from dotenv import load_dotenv
+from openai import OpenAI
 
-# 환경 변수 로드
-load_dotenv()
-
-# OpenAI API 키 설정
-openai.api_key = os.getenv("OPENAI_API_KEY")
-
-# 페이지 설정
+# 페이지 설정 (반드시 첫 번째 st 명령어여야 함)
 st.set_page_config(
-    page_title="운세 채팅 서비스",
+    page_title="운세 챗봇",
     page_icon="🔮",
-    layout="wide"
+    layout="centered"
 )
 
-# 타이틀과 설명
-st.title("🔮 운세 채팅 서비스")
+# OpenAI API 키 로드 (오류 처리 추가)
+try:
+    load_dotenv()
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        st.warning("환경 변수에 OPENAI_API_KEY가 설정되지 않았습니다.")
+        api_key = "sk-demo-key"  # 데모용 키 (실제로 작동하지 않음)
+except Exception as e:
+    st.warning(f"환경 변수 로드 중 오류가 발생했습니다: {e}")
+    api_key = "sk-demo-key"  # 데모용 키 (실제로 작동하지 않음)
+
+# OpenAI 클라이언트 초기화
+client = OpenAI(api_key=api_key)
 
 # 세션 상태 초기화
 if "messages" not in st.session_state:
-    st.session_state.messages = []
-    # 초기 메시지 추가
-    st.session_state.messages.append({
-        "role": "assistant",
-        "content": "안녕하세요! 어떤 방식으로 운세를 봐드릴까요?"
-    })
+    st.session_state.messages = [
+        {"role": "assistant", "content": "안녕하세요 어떤 방식으로 운세를 봐드릴까요?"}
+    ]
 
-# 운세 상담 시스템 프롬프트
-SYSTEM_PROMPT = """당신은 전문적인 운세 상담사입니다. 
-사용자의 생년월일과 시간을 바탕으로 사주팔자, 운세, 그리고 미래에 대한 조언을 제공해주세요.
-답변은 친절하고 긍정적이며, 구체적인 조언을 포함해야 합니다.
-단, 절대적으로 믿을 수 없는 예측은 피하고, 현실적인 조언을 제공해주세요."""
+if "show_options" not in st.session_state:
+    st.session_state.show_options = True
+
+if "waiting_for_input" not in st.session_state:
+    st.session_state.waiting_for_input = False
+
+if "fortune_type" not in st.session_state:
+    st.session_state.fortune_type = None
+
+# 운세 유형에 따른 시스템 메시지 정의
+system_messages = {
+    "별자리 운세": "당신은 별자리 운세를 전문적으로 봐주는 점성술사입니다. 사용자의 별자리에 대한 정보를 분석하여 운세, 성격, 대인관계, 직업 등에 대한 통찰력 있는 답변을 제공해주세요. 사용자가 별자리를 언급하지 않았다면, 먼저 별자리가 무엇인지 물어보세요."
+}
+
+# 기본 시스템 메시지
+default_system_message = "당신은 별자리 운세를 전문적으로 봐주는 점성술사입니다. 사용자의 질문에 대해 운세와 관련된 통찰력 있는 답변을 제공해주세요."
+
+# 챗봇 응답 함수
+def get_fortune_response(messages):
+    try:
+        # 선택된 운세 유형에 따른 시스템 메시지 설정
+        fortune_type = st.session_state.fortune_type
+        system_msg = system_messages.get(fortune_type, default_system_message)
+        
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": system_msg},
+                *messages
+            ],
+            temperature=0.7,
+        )
+        return response.choices[0].message.content
+    except Exception as e:
+        return f"죄송합니다, 오류가 발생했습니다: {str(e)}"
+
+# 옵션 선택 함수
+def handle_option_click(option):
+    st.session_state.messages.append({"role": "user", "content": option})
+    st.session_state.show_options = False
+    st.session_state.waiting_for_input = True
+    st.session_state.fortune_type = option
+    
+    # 사용자 선택 후 바로 응답 생성
+    response = get_fortune_response(st.session_state.messages)
+    st.session_state.messages.append({"role": "assistant", "content": response})
+
+# CSS 스타일 적용
+st.markdown("""
+<style>
+    .fortune-option {
+        margin: 5px;
+    }
+    /* 옵션 버튼 스타일 수정 */
+    .stButton>button {
+        width: auto !important;
+        padding: 5px 10px !important;
+        border-radius: 20px;
+        background-color: #f0f0f0;
+        color: #333;
+        font-weight: bold;
+        font-size: 0.8rem !important;
+        transition: background-color 0.3s;
+        position: relative;
+        margin-left: 5px;
+        margin-bottom: 2px;
+    }
+    .stButton>button:hover {
+        background-color: #e0e0e0;
+    }
+    /* 버튼 컨테이너 위치 조정 */
+    .option-container {
+        position: relative;
+        margin-bottom: -10px;
+        text-align: left;
+    }
+    /* 알림 스타일 */
+    .notice {
+        margin-top: -5px;
+        margin-bottom: 20px;
+        color: #666;
+        font-size: 0.9rem;
+        font-style: italic;
+    }
+    /* 구분선 스타일 */
+    .divider {
+        margin: 20px 0;
+        border-top: 1px solid #eee;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# 애플리케이션 제목 표시
+st.title("🔮 운세 챗봇")
+
+# 서비스 안내 문구 (제목 바로 아래)
+st.markdown('<p class="notice">🔮 이 서비스는 참고용으로만 사용하시기 바랍니다.</p>', unsafe_allow_html=True)
+
+# 구분선
+st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
 
 # 메시지 표시
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
-        st.markdown(message["content"])
+        st.write(message["content"])
 
-# 운세 유형 선택 버튼들
-if len(st.session_state.messages) == 1:  # 초기 메시지만 있을 때만 선택지 표시
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        if st.button("✨ 별자리 운세"):
-            st.session_state.messages.append({"role": "user", "content": "별자리 운세를 보고 싶어요."})
-            st.session_state["user_input"] = "별자리 운세를 보고 싶어요."
-            st.experimental_set_query_params(dummy=str(time.time()))
-    with col2:
-        if st.button("🎋 사주팔자"):
-            st.session_state.messages.append({"role": "user", "content": "사주팔자를 보고 싶어요."})
-            st.session_state["user_input"] = "사주팔자를 보고 싶어요."
-            st.experimental_set_query_params(dummy=str(time.time()))
-    with col3:
-        if st.button("🎯 타로카드"):
-            st.session_state.messages.append({"role": "user", "content": "타로카드로 운세를 보고 싶어요."})
-            st.session_state["user_input"] = "타로카드로 운세를 보고 싶어요."
-            st.experimental_set_query_params(dummy=str(time.time()))
+# 옵션 버튼 표시
+if st.session_state.show_options:
+    st.markdown('<div class="option-container">', unsafe_allow_html=True)
+    if st.button("별자리 운세", key="zodiac", help="별자리 운세 보기"):
+        handle_option_click("별자리 운세")
+        st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
 
-# 사용자 입력
-user_input = st.text_input("궁금하신 점을 입력해주세요:", key="user_input")
-
-# 사용자 입력이 있을 경우 처리
-if user_input:
-    # 사용자 메시지 추가
-    st.session_state.messages.append({"role": "user", "content": user_input})
-    
-    # 로딩 메시지 표시
-    with st.chat_message("assistant"):
-        message_placeholder = st.empty()
-        message_placeholder.markdown("...")
+# 사용자 입력 처리
+if st.session_state.waiting_for_input or not st.session_state.show_options:
+    user_input = st.chat_input("무엇이 궁금하신가요?")
+    if user_input:
+        # 사용자 메시지 추가
+        st.session_state.messages.append({"role": "user", "content": user_input})
         
-        # AI 응답 생성
-        try:
-            response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
-                messages=[
-                    {"role": "system", "content": SYSTEM_PROMPT},
-                    *[{"role": m["role"], "content": m["content"]} for m in st.session_state.messages]
-                ],
-                temperature=0.7,
-                max_tokens=500
-            )
-            
-            ai_response = response.choices[0].message.content
-            
-            # 로딩 애니메이션
-            for i in range(3):
-                message_placeholder.markdown("..." * (i + 1))
-                time.sleep(0.5)
-            
-            # 최종 응답 표시
-            message_placeholder.markdown(ai_response)
-            
-            # AI 응답 추가
-            st.session_state.messages.append({"role": "assistant", "content": ai_response})
-            
-        except Exception as e:
-            st.error(f"죄송합니다. 오류가 발생했습니다: {str(e)}")
-
-# 사이드바에 추가 정보
-with st.sidebar:
-    st.header("📝 사용 방법")
-    st.markdown("""
-    1. 원하는 운세 유형을 선택해주세요
-    2. 생년월일과 시간을 입력해주세요
-    3. 궁금하신 점을 자유롭게 물어보세요
-    4. AI가 상세한 운세를 알려드립니다
-    """)
-    
-    st.header("⚠️ 주의사항")
-    st.markdown("""
-    - 이 서비스는 재미로만 참고해주세요
-    - 개인정보는 안전하게 보호됩니다
-    """) 
+        # 사용자 메시지 표시
+        with st.chat_message("user"):
+            st.write(user_input)
+        
+        # 챗봇 응답 생성
+        with st.chat_message("assistant"):
+            message_placeholder = st.empty()
+            full_response = get_fortune_response(st.session_state.messages)
+            message_placeholder.write(full_response)
+        
+        # 챗봇 메시지 저장
+        st.session_state.messages.append({"role": "assistant", "content": full_response})
+        st.session_state.waiting_for_input = True
+        st.rerun()
