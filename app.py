@@ -13,13 +13,22 @@ st.set_page_config(
 # OpenAI API 키 로드 (오류 처리 추가)
 try:
     load_dotenv()
-    api_key = os.getenv("OPENAI_API_KEY")
+    # API 키를 환경 변수에서 가져오거나 여기에 직접 입력할 수 있습니다
+    api_key = "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"
+    # 스트림릿 시크릿에서 API 키 가져오기 시도
     if not api_key:
-        st.warning("환경 변수에 OPENAI_API_KEY가 설정되지 않았습니다.")
-        api_key = "sk-demo-key"  # 데모용 키 (실제로 작동하지 않음)
+        try:
+            api_key = st.secrets["OPENAI_API_KEY"]
+        except:
+            pass
+    
+    if not api_key:
+        st.warning("API 키가 설정되지 않았습니다. API 키를 설정해주세요.")
+        # 아래 YOUR_API_KEY 부분에 실제 OpenAI API 키를 입력하세요
+        api_key = "YOUR_API_KEY"
 except Exception as e:
     st.warning(f"환경 변수 로드 중 오류가 발생했습니다: {e}")
-    api_key = "sk-demo-key"  # 데모용 키 (실제로 작동하지 않음)
+    api_key = ""
 
 # OpenAI 클라이언트 초기화
 client = OpenAI(api_key=api_key)
@@ -41,7 +50,7 @@ if "fortune_type" not in st.session_state:
 
 # 운세 유형에 따른 시스템 메시지 정의
 system_messages = {
-    "별자리 운세": "당신은 별자리 운세를 전문적으로 봐주는 점성술사입니다. 사용자의 별자리에 대한 정보를 분석하여 운세, 성격, 대인관계, 직업 등에 대한 통찰력 있는 답변을 제공해주세요. 사용자가 별자리를 언급하지 않았다면, 먼저 별자리가 무엇인지 물어보세요."
+    "별자리 운세": "당신은 별자리 운세를 전문적으로 봐주는 점성술사입니다. 사용자의 별자리에 대한 정보를 분석하여 운세, 성격, 대인관계, 직업 등에 대한 통찰력 있는 답변을 제공해주세요. 사용자가 별자리를 언급하지 않았다면, 반드시 먼저 '어떤 별자리의 운세를 알고 싶으신가요? 또는 생년월일을 알려주시면 별자리를 확인해 드릴 수 있습니다.'라고 물어보세요."
 }
 
 # 기본 시스템 메시지
@@ -73,9 +82,36 @@ def handle_option_click(option):
     st.session_state.waiting_for_input = True
     st.session_state.fortune_type = option
     
-    # 사용자 선택 후 바로 응답 생성
-    response = get_fortune_response(st.session_state.messages)
-    st.session_state.messages.append({"role": "assistant", "content": response})
+    # 별자리 운세를 선택한 경우 바로 응답 메시지 표시
+    if option == "별자리 운세":
+        initial_response = "별자리 운세를 봐드릴게요. 어떤 별자리의 운세를 알고 싶으신가요? 또는 생년월일을 알려주시면 별자리를 확인해 드릴 수 있습니다."
+        st.session_state.messages.append({"role": "assistant", "content": initial_response})
+        return
+    
+    try:
+        # 사용자에게 응답 생성 중임을 표시
+        with st.chat_message("assistant"):
+            message_placeholder = st.empty()
+            message_placeholder.write("응답을 생성 중입니다...")
+            
+            # API 키가 설정되지 않은 경우
+            if not api_key or api_key == "YOUR_API_KEY":
+                message = "API 키가 설정되지 않아 응답을 생성할 수 없습니다. API 키를 설정해주세요."
+                message_placeholder.write(message)
+                st.session_state.messages.append({"role": "assistant", "content": message})
+                st.session_state.waiting_for_input = True
+                st.rerun()
+                return
+            
+            # 응답 생성
+            response = get_fortune_response(st.session_state.messages)
+            message_placeholder.write(response)
+            
+        st.session_state.messages.append({"role": "assistant", "content": response})
+    except Exception as e:
+        st.error(f"응답 생성 중 오류 발생: {str(e)}")
+        error_message = "죄송합니다, 응답을 생성하는 중 오류가 발생했습니다. 다시 시도해주세요."
+        st.session_state.messages.append({"role": "assistant", "content": error_message})
 
 # CSS 스타일 적용
 st.markdown("""
@@ -158,10 +194,26 @@ if st.session_state.waiting_for_input or not st.session_state.show_options:
         # 챗봇 응답 생성
         with st.chat_message("assistant"):
             message_placeholder = st.empty()
-            full_response = get_fortune_response(st.session_state.messages)
-            message_placeholder.write(full_response)
-        
-        # 챗봇 메시지 저장
-        st.session_state.messages.append({"role": "assistant", "content": full_response})
+            message_placeholder.write("응답을 생성 중입니다...")  # 로딩 메시지 표시
+            
+            # API 키가 설정되지 않은 경우
+            if not api_key or api_key == "YOUR_API_KEY":
+                message = "API 키가 설정되지 않아 응답을 생성할 수 없습니다. API 키를 설정해주세요."
+                message_placeholder.write(message)
+                st.session_state.messages.append({"role": "assistant", "content": message})
+                st.session_state.waiting_for_input = True
+                st.rerun()
+            else:
+                try:
+                    full_response = get_fortune_response(st.session_state.messages)
+                    message_placeholder.write(full_response)
+                    
+                    # 챗봇 메시지 저장
+                    st.session_state.messages.append({"role": "assistant", "content": full_response})
+                except Exception as e:
+                    error_message = f"죄송합니다, 응답을 생성하는 중 오류가 발생했습니다: {str(e)}"
+                    message_placeholder.write(error_message)
+                    st.session_state.messages.append({"role": "assistant", "content": error_message})
+                
         st.session_state.waiting_for_input = True
         st.rerun()
