@@ -13,8 +13,9 @@ st.set_page_config(
 # OpenAI API 키 로드 (오류 처리 추가)
 try:
     load_dotenv()
-    # API 키를 환경 변수에서 가져오거나 여기에 직접 입력할 수 있습니다
-    api_key = "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"
+    # API 키를 환경 변수에서 가져오기
+    api_key = os.getenv("OPENAI_API_KEY", "")
+    
     # 스트림릿 시크릿에서 API 키 가져오기 시도
     if not api_key:
         try:
@@ -23,9 +24,9 @@ try:
             pass
     
     if not api_key:
-        st.warning("API 키가 설정되지 않았습니다. API 키를 설정해주세요.")
-        # 아래 YOUR_API_KEY 부분에 실제 OpenAI API 키를 입력하세요
-        api_key = "YOUR_API_KEY"
+        # 안내 메시지만 표시하고 빈 API 키 사용 (운영 시에는 동작하지 않음)
+        st.warning("API 키가 설정되지 않았습니다. 이 앱을 사용하려면 API 키를 설정해주세요.")
+        api_key = ""
 except Exception as e:
     st.warning(f"환경 변수 로드 중 오류가 발생했습니다: {e}")
     api_key = ""
